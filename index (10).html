@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ماسح الكارنيهات الاحترافي (نظام A5)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4 antialiased">
+
+  <div class="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 space-y-6">
+    <!-- العنوان -->
+    <div class="text-center space-y-2">
+      <div class="inline-flex p-3 bg-blue-50 text-blue-600 rounded-xl mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1z" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900">ماسح الكارنيهات الذكي</h1>
+      <p class="text-sm text-slate-500">استخراج ملف PDF جاهز للطباعة والقص بنظام (A5)</p>
+    </div>
+
+    <!-- مناطق التصوير -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-700 block">وجه الكارنيه:</label>
+        <div class="relative border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50 hover:bg-blue-50/30 group">
+          <input type="file" id="frontImg" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(this, 'frontPreview')">
+          <div id="frontPlaceholder" class="space-y-2">
+            <p class="text-xs font-medium text-slate-600">اضغط للتصوير أو الرفع</p>
+          </div>
+          <img id="frontPreview" class="hidden w-full h-40 object-contain rounded-lg shadow-sm" alt="الوجه">
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm font-semibold text-slate-700 block">ظهر الكارنيه:</label>
+        <div class="relative border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-4 text-center cursor-pointer transition bg-slate-50 hover:bg-blue-50/30 group">
+          <input type="file" id="backImg" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(this, 'backPreview')">
+          <div id="backPlaceholder" class="space-y-2">
+            <p class="text-xs font-medium text-slate-600">اضغط للتصوير أو الرفع</p>
+          </div>
+          <img id="backPreview" class="hidden w-full h-40 object-contain rounded-lg shadow-sm" alt="الظهر">
+        </div>
+      </div>
+    </div>
+
+    <!-- الإعدادات -->
+    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700 block">اتجاه الكارنيه:</span>
+        <div class="flex items-center gap-4 mt-1">
+          <label class="flex items-center gap-2 text-sm cursor-pointer text-slate-600 font-medium">
+            <input type="radio" name="orientation" value="landscape" checked class="w-4 h-4 text-blue-600">
+            <span>بالعرض (أفقي)</span>
+          </label>
+          <label class="flex items-center gap-2 text-sm cursor-pointer text-slate-600 font-medium">
+            <input type="radio" name="orientation" value="portrait" class="w-4 h-4 text-blue-600">
+            <span>بالطول (رأسي)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <span class="text-sm font-semibold text-slate-700 block">نظام التوفير:</span>
+        <div class="mt-1">
+          <label class="flex items-center gap-2 text-sm cursor-pointer text-slate-600 font-medium">
+            <input type="checkbox" id="twoCopies" class="w-4 h-4 rounded text-blue-600">
+            <span class="text-blue-700 font-bold">تقسيم الصفحة بالعرض لورقتين (A5)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- زر الاستخراج -->
+    <button onclick="generatePDF()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center text-base">
+      استخراج ملف PDF الجاهز للطباعة
+    </button>
+  </div>
+
+  <script>
+    function previewImage(input, previewId) {
+      const file = input.files[0];
+      if (file) {
+        const preview = document.getElementById(previewId);
+        const placeholder = input.nextElementSibling;
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+        if (placeholder) placeholder.classList.add('hidden');
+      }
+    }
+
+    async function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4');
+
+      const frontFile = document.getElementById('frontImg').files[0];
+      const backFile = document.getElementById('backImg').files[0];
+
+      if (!frontFile || !backFile) {
+        alert("برجاء تصوير أو رفع وجه وظهـر الكارنيه أولاً.");
+        return;
+      }
+
+      const frontBase64 = await toBase64(frontFile);
+      const backBase64 = await toBase64(backFile);
+
+      const orientation = document.querySelector('input[name="orientation"]:checked').value;
+      const isTwoCopies = document.getElementById('twoCopies').checked;
+
+      // أبعاد الورقة A4
+      const A4Width = 210;
+      const A4Height = 297;
+
+      let cardWidth = 85.6;
+      let cardHeight = 54.0;
+      if (orientation === 'portrait') {
+        cardWidth = 54.0;
+        cardHeight = 85.6;
+      }
+
+      // دالة ذكية لطباعة الكارنيه تتمركز في منتصف أي مساحة نحددها
+      function drawCardBlock(centerX, centerY) {
+        if (orientation === 'landscape') {
+          // الكارنيه بالعرض: رص الوش فوق والضهر تحته
+          const gap = 15;
+          const totalHeight = (cardHeight * 2) + gap;
+          const startX = centerX - (cardWidth / 2);
+          const startY = centerY - (totalHeight / 2);
+
+          doc.addImage(frontBase64, 'JPEG', startX, startY, cardWidth, cardHeight);
+          doc.addImage(backBase64, 'JPEG', startX, startY + cardHeight + gap, cardWidth, cardHeight);
+        } else {
+          // الكارنيه بالطول: رص الوش والضهر جنب بعض عشان الورقة الـ A5 تكفي وميتقصوش
+          const gap = 15;
+          const totalWidth = (cardWidth * 2) + gap;
+          const startX = centerX - (totalWidth / 2);
+          const startY = centerY - (cardHeight / 2);
+
+          doc.addImage(frontBase64, 'JPEG', startX, startY, cardWidth, cardHeight);
+          doc.addImage(backBase64, 'JPEG', startX + cardWidth + gap, startY, cardWidth, cardHeight);
+        }
+      }
+
+      if (isTwoCopies) {
+        // نقطة المنتصف بالطول لصفحة الـ A4
+        const midY = A4Height / 2; // مسافة 148.5 مللي
+
+        // رسم خط القص المنقط بالعرض في منتصف الورقة
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineDashPattern([2, 2], 0);
+        doc.line(10, midY, 200, midY); 
+
+        // النسخة الفوقانية (تتوسط النصف العلوي A5)
+        drawCardBlock(A4Width / 2, midY / 2);
+
+        // النسخة التحتانية (تتوسط النصف السفلي A5)
+        drawCardBlock(A4Width / 2, midY + (midY / 2));
+      } else {
+        // لو مش متعلم على الاوبشن: اطبع نسخة واحدة في نص الـ A4 بالظبط
+        drawCardBlock(A4Width / 2, A4Height / 2);
+      }
+
+      doc.save('ID_Card_A5_Ready.pdf');
+    }
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  </script>
+</body>
+</html>
